@@ -1,0 +1,386 @@
+head	1.9;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.9
+date	2013.05.09.17.56.15;	author jcuser;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2012.04.06.15.09.29;	author jcuser;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2010.10.27.19.02.38;	author jcuser;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2010.08.10.23.43.54;	author jcuser;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2010.07.12.23.05.15;	author jcuser;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2010.07.12.22.19.52;	author jcuser;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2010.07.12.19.50.47;	author root;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2010.07.12.19.26.40;	author root;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2010.07.08.19.02.32;	author jcuser;	state Exp;
+branches;
+next	;
+
+
+desc
+@initial check in -g2
+@
+
+
+1.9
+log
+@Tested functionality by changing the blackout time to 2 minutes.  Now switched back to 120 minutes.
+@
+text
+@#!/bin/sh
+
+# $Id: webalerts.sh,v 1.8 2012/04/06 15:09:29 jcuser Exp jcuser $
+
+# This a sloppy script to monitor the web sites.
+# This is meant to be called from cron every minute by jcuser from prodmgmt02.
+# Don't critisize me is this is sloppy (not full paths, etc).
+# 20100625 - updated to move it to jcuser
+### 201008101642 - Removed alerts for staging
+### 201010271203 - Cleaned up some comments
+### 201204060808 - Cleaned up incriminating comments
+
+# Files used by the scipt
+HOMEDIRR=/home/jcuser/webalerts
+LOGFILE=$HOMEDIRR/webup.log
+BLACKOUTFILE=$HOMEDIRR/BLACKOUT
+ALERTFILE=$HOMEDIRR/ACTIVE_ALERT
+ALERTEMAIL=webalerts@@jennycraig.com
+THEDATE=`/bin/date +%Y:%m:%d:%H:%M`
+BLACKOUTTIME=120
+
+# Check the sites
+WEBA=`/usr/bin/curl -s --connect-timeout 12 http://10.217.60.25/heartbeat.html | /bin/grep -c Alive`
+WEBB=`/usr/bin/curl -s --connect-timeout 12 http://10.217.60.26/heartbeat.html | /bin/grep -c Alive`
+#WEBC=`/usr/bin/curl -s --connect-timeout 12 http://10.217.70.25/heartbeat.html | /bin/grep -c Alive`
+#WEBD=`/usr/bin/curl -s --connect-timeout 12 http://10.217.70.26/heartbeat.html | /bin/grep -c Alive`
+
+ALERT=0
+# Up or down
+if [ $WEBA -eq 0 ] ; then
+	OUTPUTA="web01prdjc is DOWN!"
+	ALERT=1
+	else
+		OUTPUTA="web01prdjc is up"
+fi
+if [ $WEBB -eq 0 ] ; then
+	OUTPUTB="web02prdjc is DOWN!"
+	ALERT=1
+	else
+		OUTPUTB="web02prdjc is up"
+fi
+#if [ $WEBC -eq 0 ] ; then
+#	OUTPUTC="web01stgjc is DOWN!"
+#	ALERT=1
+#	else
+#		OUTPUTC="web01stgjc is up"
+#fi
+#if [ $WEBD -eq 0 ] ; then
+#	OUTPUTD="web02stgjc is DOWN!"
+#	ALERT=1
+#	else
+#		OUTPUTD="web02stgjc is up"
+#fi
+
+# update the log
+#FINALOUTPUT="$THEDATE -- $OUTPUTA -- $OUTPUTB -- $OUTPUTC -- $OUTPUTD"
+FINALOUTPUT="$THEDATE -- $OUTPUTA -- $OUTPUTB"
+echo $FINALOUTPUT >> $LOGFILE
+
+# Stop scrip if blackout file exists
+### I need to add function to blackout individual dev levels
+### During blackout, still send email, but not pages
+# New blackout routine
+if [ -e $BLACKOUTFILE ] ; then
+	BLACKOUT=`/usr/bin/find $BLACKOUTFILE -mmin -$BLACKOUTTIME | /usr/bin/wc -l`
+	if [ $BLACKOUT -eq 0 ] ; then
+		/bin/echo "Webalerts have been in blackout mode for over $BLACKOUTTIME minutes.  Is that on purpose?" | /bin/mail -s "Webalerts on BLACKOUT for over $BLACKOUTTIME minutes" $ALERTEMAIL
+		/bin/touch $BLACKOUTFILE
+	else
+		exit 2
+	fi
+fi
+
+#if [ -e $BLACKOUTFILE -a $BLACKOUT -eq 0 ] ; then
+#	/bin/echo "Webalerts have been in blackout mode for over $BLACKOUTTIME mnutes.  Is that on purpose?" | /bin/mail -s "Webalerts on BLACKOUT for over $BLACKOUTTIME minutes" $ALERTEMAIL
+#	/bin/touch $BLACKOUTFILE
+#	elif [ -e $BLACKOUTFILE ] ; then
+#		exit 2
+#fi
+
+# Is there an active alert?
+# if there is currently an alert condition
+# 	is there an alert file
+# 		if not, create it
+# 	was file touched in the last 10 mintues?
+# 	if file older than 10 minutes, reset alert time
+ACTIVE=0
+if [ $ALERT -ne 0 ] ; then
+	if [ ! -e $ALERTFILE ] ; then
+		/bin/touch $ALERTFILE
+		else
+			ACTIVE=`/usr/bin/find $ALERTFILE -mmin -10 | /usr/bin/wc -l`
+	fi
+	if [ $ACTIVE -eq 0 ] ; then
+		/bin/echo "$FINALOUTPUT" | /bin/mail -s "$FINALOUTPUT" $ALERTEMAIL
+		/bin/touch $ALERTFILE
+	fi
+	elif [ -e $ALERTFILE ] ; then
+		/bin/rm $ALERTFILE
+fi
+
+exit 0
+
+
+@
+
+
+1.8
+log
+@clean up --g2
+@
+text
+@d3 1
+a3 1
+# $Id: webalerts.sh,v 1.7 2010/10/27 19:02:38 jcuser Exp jcuser $
+d67 1
+a67 1
+		/bin/echo "Webalerts have been in blackout mode for over $BLACKOUTTIME mnutes.  Is that on purpose?" | /bin/mail -s "Webalerts on BLACKOUT for over $BLACKOUTTIME minutes" $ALERTEMAIL
+@
+
+
+1.7
+log
+@cleaned up comments -g2
+@
+text
+@d3 1
+a3 1
+# $Id: webalerts.sh,v 1.6 2010/08/10 23:43:54 jcuser Exp jcuser $
+a8 8
+#
+# 20100712 - LOOK MAN!!!  I told you - this is a slapped together POS
+# shell script.  Why are we using a POS shell script to monitor our 
+# production web servers?  Because everyone believes our noc is monitoring
+# but they aren't and the monitoring server isn't nearly configured.  Why?
+# Because JCI won't spend the money to update hardware or software 
+# unless it is an emergency.
+
+d11 1
+@
+
+
+1.6
+log
+@removed staging from monitoring -g2
+@
+text
+@d3 1
+a3 1
+# $Id: webalerts.sh,v 1.5 2010/07/12 23:05:15 jcuser Exp jcuser $
+d5 3
+a7 3
+# Sloppy script to monitor the web sites
+# This is mead to be called from cron every minute from prodmgmt02
+# don't critisize me is this is sloppy (not full paths, etc)
+d12 1
+a12 1
+# production web servers?  Because everyone believes out noc is monitoring
+d18 1
+d90 4
+a93 5
+# is there an alert file
+# if not, create it
+# was file touched in the last 10 mintues?
+# if file older than 10 minutes, do this
+# reset alert time
+@
+
+
+1.5
+log
+@fixed some bugs on the major update -g2
+@
+text
+@d3 1
+a3 1
+# $Id: webalerts.sh,v 1.4 2010/07/12 22:19:52 jcuser Exp jcuser $
+d17 2
+d31 2
+a32 2
+WEBC=`/usr/bin/curl -s --connect-timeout 12 http://10.217.70.25/heartbeat.html | /bin/grep -c Alive`
+WEBD=`/usr/bin/curl -s --connect-timeout 12 http://10.217.70.26/heartbeat.html | /bin/grep -c Alive`
+d48 12
+a59 12
+if [ $WEBC -eq 0 ] ; then
+	OUTPUTC="web01stgjc is DOWN!"
+	ALERT=1
+	else
+		OUTPUTC="web01stgjc is up"
+fi
+if [ $WEBD -eq 0 ] ; then
+	OUTPUTD="web02stgjc is DOWN!"
+	ALERT=1
+	else
+		OUTPUTD="web02stgjc is up"
+fi
+d62 2
+a63 1
+FINALOUTPUT="$THEDATE -- $OUTPUTA -- $OUTPUTB -- $OUTPUTC -- $OUTPUTD"
+d110 2
+@
+
+
+1.4
+log
+@MAJOR revision
+added connection timeout to curl
+cleaned up script to user variables for settings
+added blackout features
+@
+text
+@d3 1
+a3 1
+# $Id: webalerts.sh,v 1.3 2010/07/12 19:50:47 root Exp jcuser $
+d22 1
+a22 1
+ALERTEMAIL=grobinson@@jennycraig.com
+d67 6
+a72 5
+BLACKOUT=`/usr/bin/find $BLACKOUTFILE -mmin -$BLACKOUTTIME | /usr/bin/wc -l`
+if [ -e $BLACKOUTFILE -a $BLACKOUT -eq 0 ] ; then
+	/bin/echo "Webalerts have been in blackout mode for over $BLACKOUTTIME mnutes.  Is that on purpose?" | /bin/mail -s "Webalerts on BLACKOUT for over $BLACKOUTTIME minutes" $ALERTEMAIL
+	/bin/touch $BLACKOUTFILE
+	elif [ -e $BLACKOUTFILE ] ; then
+d74 1
+d77 7
+@
+
+
+1.3
+log
+@added retrys to the web monitoring script to try and make it less sensitive
+-g2
+@
+text
+@d3 1
+a3 1
+# $Id: webalerts.sh,v 1.2 2010/07/12 19:26:40 root Exp root $
+d17 9
+d27 4
+a30 4
+WEBA=`/usr/bin/curl -s --retry 5 --retry-delay 2 --max-time 12 http://10.217.60.25/heartbeat.html | /bin/grep -c Alive`
+WEBB=`/usr/bin/curl -s --retry 5 --retry-delay 2 --max-time 12 http://10.217.60.26/heartbeat.html | /bin/grep -c Alive`
+WEBC=`/usr/bin/curl -s --retry 5 --retry-delay 2 --max-time 12 http://10.217.70.25/heartbeat.html | /bin/grep -c Alive`
+WEBD=`/usr/bin/curl -s --retry 5 --retry-delay 2 --max-time 12 http://10.217.70.26/heartbeat.html | /bin/grep -c Alive`
+a59 2
+#THEDATE=`/bin/date +%Y%m%d%H%M`
+THEDATE=`/bin/date +%Y:%m:%d:%H:%M`
+d61 1
+a61 1
+echo $FINALOUTPUT >> /home/jcuser/webalerts/webup.log
+a62 1
+# Send out an alert if there is a server down
+a64 2
+###   and when there is an active black out, send pages only once and hour 
+###   after so many hours
+d67 6
+a72 6
+BLACKOUTTIME=240
+BLACKOUT=`/usr/bin/find /home/jcuser/webalerts/BLACKOUT -mmin -$BLACKOUTTIME | /usr/bin/wc -l`
+if [ -e /home/jcuser/webalerts/BLACKOUT -a $BLACKOUT -eq 0 ] ; then
+	/bin/echo "Webalerts have been in blackout mode for over $BLACKOUTTIME mnutes.  Is that on purpose?" | /bin/mail -s "Webalerts on BLACKOUT for over $BLACKOUTTIME minutes" webalerts@@jennycraig.com
+	elif [ -e ./TESTING ] ; then
+		exit 1
+d84 2
+a85 2
+	if [ ! -e /home/jcuser/webalerts/ACTIVE_ALERT ] ; then
+		/bin/touch /home/jcuser/webalerts/ACTIVE_ALERT
+d87 1
+a87 1
+			ACTIVE=`/usr/bin/find /home/jcuser/webalerts/ACTIVE_ALERT -mmin -10 | /usr/bin/wc -l`
+d90 2
+a91 2
+		/bin/echo "$FINALOUTPUT" | /bin/mail -s "$FINALOUTPUT" webalerts@@jennycraig.com
+		/bin/touch /home/jcuser/webalerts/ACTIVE_ALERT
+d93 2
+a94 2
+	elif [ -e /home/jcuser/webalerts/ACTIVE_ALERT ] ; then
+		/bin/rm /home/jcuser/webalerts/ACTIVE_ALERT
+d97 1
+a97 1
+
+@
+
+
+1.2
+log
+@added more robust black out feature -g2
+@
+text
+@d3 1
+a3 1
+# $Id: webalerts.sh,v 1.1 2010/07/08 19:02:32 jcuser Exp root $
+d18 4
+a21 4
+WEBA=`/usr/bin/curl -s http://10.217.60.25/heartbeat.html | /bin/grep -c Alive`
+WEBB=`/usr/bin/curl -s http://10.217.60.26/heartbeat.html | /bin/grep -c Alive`
+WEBC=`/usr/bin/curl -s http://10.217.70.25/heartbeat.html | /bin/grep -c Alive`
+WEBD=`/usr/bin/curl -s http://10.217.70.26/heartbeat.html | /bin/grep -c Alive`
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d3 1
+a3 1
+# $Id$
+d9 7
+d62 7
+a68 2
+if [ -e /home/jcuser/webalerts/BLACKOUT ] ; then
+	exit 0
+d75 2
+a76 2
+# was file touched in the last 11 mintues?
+# if file older than 11 minutes, do this
+d83 1
+a83 1
+			ACTIVE=`/usr/bin/find /home/jcuser/webalerts/ACTIVE_ALERT -mmin -11 | /usr/bin/wc -l`
+@

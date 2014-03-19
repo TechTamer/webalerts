@@ -1,0 +1,223 @@
+head	1.9;
+access;
+symbols;
+locks; strict;
+comment	@# @;
+
+
+1.9
+date	2013.06.07.23.13.28;	author jcuser;	state Exp;
+branches;
+next	1.8;
+
+1.8
+date	2011.05.17.21.22.48;	author jcuser;	state Exp;
+branches;
+next	1.7;
+
+1.7
+date	2010.07.12.22.35.54;	author jcuser;	state Exp;
+branches;
+next	1.6;
+
+1.6
+date	2010.07.12.18.43.28;	author root;	state Exp;
+branches;
+next	1.5;
+
+1.5
+date	2010.07.08.18.54.40;	author jcuser;	state Exp;
+branches;
+next	1.4;
+
+1.4
+date	2010.07.08.18.54.12;	author jcuser;	state Exp;
+branches;
+next	1.3;
+
+1.3
+date	2010.07.08.18.52.34;	author jcuser;	state Exp;
+branches;
+next	1.2;
+
+1.2
+date	2010.07.08.18.52.08;	author jcuser;	state Exp;
+branches;
+next	1.1;
+
+1.1
+date	2010.07.08.18.50.34;	author jcuser;	state Exp;
+branches;
+next	;
+
+
+desc
+@initial check in -g2
+@
+
+
+1.9
+log
+@commented out line with email and added new line to change target email
+-g2
+@
+text
+@#!/bin/sh
+
+# $Id: report.sh,v 1.8 2011/05/17 21:22:48 jcuser Exp jcuser $
+
+## sloppy send out report script 201007061815 -g2
+## updated 20100708 -g2
+
+# Wait a sec for file to be written to by cron process
+#wait 15
+
+# set the date
+THEDATE=`/bin/date +%Y-%m-%d`
+APPPATH="/home/jcuser/webalerts"
+ARCHIVEPATH="$APPPATH/archive"
+LOGNAME="$APPPATH/webup.log"
+FILENAME="$ARCHIVEPATH/webup-$THEDATE.csv"
+MINDOWN=`/bin/grep DOWN $LOGNAME | /usr/bin/wc -l`
+DAILYWEBUP="$ARCHIVEPATH/webup-$THEDATE"
+DAILYDOWN="$ARCHIVEPATH/downtime-$THEDATE"
+
+# create the file with column headers
+/bin/echo "year,month,day,hour,minute,web01prdjc,web02prdjc,web01stgjc,webo2stgjc" | /usr/bin/unix2dos > $FILENAME
+
+# create the spreadsheet and convert it to dos
+/bin/awk -F '[[:space:],:]' -v OFS=',' '{print $1, $2, $3, $4, $5, $9, $13, $17, $21}' $LOGNAME | /usr/bin/unix2dos >> $FILENAME
+
+# Add count and uptime feature
+/bin/echo ',,,,,,,,' | /usr/bin/unix2dos >> $FILENAME
+/bin/echo 'EXPERIMENTAL ADDITION,,,,,,,,' | /usr/bin/unix2dos >> $FILENAME
+/bin/echo 'THE FOLLOWING FORMULAS MAY OR MAY NOT WORK OR BE ACCURATE,,,,,,,,' | /usr/bin/unix2dos >> $FILENAME
+/bin/echo 'IF YOU HAVE PROBLEMS CHECK THAT THE REFERENCES AND RANGES ARE CORRECT,,,,,,,,' | /usr/bin/unix2dos >> $FILENAME
+/bin/echo ',,,,,,,,' | /usr/bin/unix2dos >> $FILENAME
+/bin/echo 'Total minutes down in the last 24hrs (8a-8a),,,,,"=COUNTIF(F2:F1444,""DOWN!"")","=COUNTIF(G2:G1444,""DOWN!"")","=COUNTIF(H2:H1444,""DOWN!"")","=COUNTIF(I2:I1444,""DOWN!"")"' | /usr/bin/unix2dos >> $FILENAME
+/bin/echo 'Percent uptime in the last 24hrs (8a-8a),,,,,=100-(F1446/1440),=100-(G1446/1440),=100-(H1446/1440),=100-(I1446/1440)' | /usr/bin/unix2dos >> $FILENAME
+
+# create downtime report
+/bin/echo "We had $MINDOWN minutes of production servers unavailable in the last 24 hours" > $DAILYDOWN
+/bin/echo " " >> $DAILYDOWN
+/bin/grep DOWN $LOGNAME >> $DAILYDOWN
+
+# encode the spreadsheet as an attachment and send it out
+#(/bin/cat $DAILYDOWN ; /usr/bin/uuencode $FILENAME webup-$THEDATE.csv) | /bin/mail -s "Web Up Report for $THEDATE" networkengineers@@jennycraig.com
+(/bin/cat $DAILYDOWN ; /usr/bin/uuencode $FILENAME webup-$THEDATE.csv) | /bin/mail -s "Web Up Report for $THEDATE" ISSystemsEngineers@@jennycraig.com
+
+# rotate the log out
+/bin/cp $LOGNAME $DAILYWEBUP
+/bin/cat /dev/null > $LOGNAME
+
+exit 0
+
+
+
+@
+
+
+1.8
+log
+@updated wording of email -g2
+@
+text
+@d3 1
+a3 1
+# $Id: report.sh,v 1.7 2010/07/12 22:35:54 jcuser Exp jcuser $
+d42 2
+a43 1
+(/bin/cat $DAILYDOWN ; /usr/bin/uuencode $FILENAME webup-$THEDATE.csv) | /bin/mail -s "Web Up Report for $THEDATE" networkengineers@@jennycraig.com
+@
+
+
+1.7
+log
+@added archive directory -g2
+@
+text
+@d3 1
+a3 1
+# $Id: report.sh,v 1.6 2010/07/12 18:43:28 root Exp jcuser $
+d37 1
+a37 1
+/bin/echo "We had $MINDOWN minutes of production or staging services unavailable in the last 24 hours" > $DAILYDOWN
+@
+
+
+1.6
+log
+@added experimental minutes down and percent up feature -g2
+@
+text
+@d3 1
+a3 1
+# $Id: report.sh,v 1.5 2010/07/08 18:54:40 jcuser Exp root $
+d14 1
+d16 1
+a16 1
+FILENAME="$APPPATH/webup-$THEDATE.csv"
+d18 2
+a19 2
+DAILYWEBUP="$APPPATH/webup-$THEDATE"
+DAILYDOWN="$APPPATH/downtime-$THEDATE"
+@
+
+
+1.5
+log
+@*** empty log message ***
+@
+text
+@d3 1
+a3 1
+# $Id$
+d21 1
+a21 1
+/bin/echo "year,month,day,hour,minute,web01prdjc,web02prdjc,web01stgjc,webo2stgjc" > $FILENAME
+d26 9
+@
+
+
+1.4
+log
+@*** empty log message ***
+@
+text
+@d3 1
+a3 1
+# $id$
+@
+
+
+1.3
+log
+@*** empty log message ***
+@
+text
+@d3 1
+a3 1
+# $id
+@
+
+
+1.2
+log
+@*** empty log message ***
+@
+text
+@d3 1
+a3 1
+# $id$
+@
+
+
+1.1
+log
+@Initial revision
+@
+text
+@d3 1
+a3 1
+# $id:$
+@
